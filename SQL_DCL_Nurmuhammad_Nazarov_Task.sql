@@ -1,30 +1,37 @@
--- Create a new user
+-- 1. Create a new user "rentaluser"
 CREATE USER rentaluser WITH PASSWORD 'rentalpassword';
 
--- Grant the user the ability to connect to the database
-GRANT CONNECT ON DATABASE neo_database TO rentaluser;
+-- 2. Grant permissions to connect to the "dvd_rental" database and SELECT on "customer" table
+GRANT CONNECT ON DATABASE dvd_rental TO rentaluser;
+GRANT USAGE ON SCHEMA public TO rentaluser;
+GRANT SELECT ON customer TO rentaluser;
 
--- Grant SELECT permission on 'customer' table to 'rentaluser'
-GRANT SELECT ON TABLE customer TO rentaluser;
-
--- Create a user group 'rental' and add 'rentaluser' to the group
+-- 3. Create a new user group "rental" and add "rentaluser" to this group
 CREATE ROLE rental;
 GRANT rental TO rentaluser;
 
--- Grant INSERT and UPDATE permissions on 'rental' table to 'rental' group
-GRANT INSERT, UPDATE ON TABLE rental TO rental;
+-- 4. Grant the "rental" group INSERT and UPDATE permissions for the "rental" table
+GRANT INSERT, UPDATE ON rental TO rental;
 
--- Revoke the INSERT permission from the 'rental' group for the 'rental' table
-REVOKE INSERT ON TABLE rental FROM rental;
+-- 5. Revoke the "rental" group's INSERT permission for the "rental" table
+REVOKE INSERT ON rental FROM rental;
 
+-- Assuming you have selected a customer, e.g., customer_id 123 for John Doe
+-- 6. Create a personalized role for the customer (replace with actual first and last names)
+CREATE ROLE client_john_doe NOLOGIN;
 
-CREATE ROLE client_John_Doe WITH LOGIN PASSWORD 'unique_password';
-GRANT SELECT ON TABLE rental TO client_John_Doe;
-GRANT SELECT ON TABLE payment TO client_John_Doe;
-ALTER TABLE rental ROW LEVEL SECURITY;
-ALTER TABLE payment ROW LEVEL SECURITY;
-CREATE POLICY rental_access ON rental FOR SELECT TO client_John_Doe USING (customer_id = [customer_id]);
-CREATE POLICY payment_access ON payment FOR SELECT TO client_John_Doe USING (customer_id = [customer_id]);
+-- Grant the necessary privileges for connecting to the database and schema usage
+GRANT CONNECT ON DATABASE dvd_rental TO client_john_doe;
+GRANT USAGE ON SCHEMA public TO client_john_doe;
 
-SELECT * FROM rental WHERE customer_id = [customer_id];
-SELECT * FROM payment WHERE customer_id = [customer_id];
+-- Enable row-level security on the "rental" and "payment" tables
+ALTER TABLE rental ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for accessing only specific customer data
+-- Adjust the USING clause with the correct customer_id
+CREATE POLICY select_rental ON rental FOR SELECT USING (customer_id = 123);
+CREATE POLICY select_payment ON payment FOR SELECT USING (customer_id = 123);
+
+-- Grant select permissions on "rental" and "payment" to the new role
+GRANT SELECT ON rental, payment TO client_john_doe;
